@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design token placeholders (light mode base) */
+:root {
+	--primary-h: 210;
+	--primary-s: 92%;
+	--primary-l: 53%;
+}

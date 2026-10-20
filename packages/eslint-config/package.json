@@ -1,0 +1,9 @@
+{
+  "name": "@tirudesign/eslint-config",
+  "version": "0.0.1",
+  "main": "index.js",
+  "scripts": {
+    "test": "node -e \"console.log('eslint-config ok')\""
+  },
+  "private": false
+}

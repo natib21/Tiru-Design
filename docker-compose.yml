@@ -1,0 +1,179 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: tirudesign-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: tirudesign
+      POSTGRES_PASSWORD: tirudesign_dev_password
+      POSTGRES_DB: tirudesign
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - tirudesign-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tirudesign"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: tirudesign-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - tirudesign-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: redis-server --appendonly yes
+
+  # MinIO Object Storage (S3-compatible)
+  minio:
+    image: minio/minio:latest
+    container_name: tirudesign-minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - tirudesign-network
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # MinIO Client - Create buckets on startup
+  minio-setup:
+    image: minio/mc:latest
+    container_name: tirudesign-minio-setup
+    depends_on:
+      - minio
+    networks:
+      - tirudesign-network
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5;
+      /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin;
+      /usr/bin/mc mb myminio/tirudesign --ignore-existing;
+      /usr/bin/mc anonymous set public myminio/tirudesign;
+      exit 0;
+      "
+
+  # Backend API (NestJS)
+  api:
+    build:
+      context: .
+      dockerfile: ./apps/api/Dockerfile
+    container_name: tirudesign-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      API_HOST: 0.0.0.0
+      API_PORT: 4000
+      DATABASE_URL: postgresql://tirudesign:tirudesign_dev_password@postgres:5432/tirudesign
+      REDIS_URL: redis://redis:6379
+      CORS_ORIGINS: http://localhost:5173,http://localhost:5174
+      S3_ENDPOINT: http://minio:9000
+      S3_REGION: us-east-1
+      S3_BUCKET: tirudesign
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+    ports:
+      - "4001:4000"
+    volumes:
+      - ./apps/api:/app/apps/api
+      - ./packages:/app/packages
+      - /app/node_modules
+      - /app/apps/api/node_modules
+    networks:
+      - tirudesign-network
+    working_dir: /app
+    command: sh -lc "pnpm install --frozen-lockfile && pnpm --filter @tirudesign/api-app dev"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:4000/health || curl -fsS http://localhost:4000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # Client Frontend (Vite)
+  client:
+    build:
+      context: .
+      dockerfile: ./apps/client/Dockerfile
+    container_name: tirudesign-client
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      VITE_API_URL: http://localhost:4001
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./apps/client:/app/apps/client
+      - ./packages:/app/packages
+      - /app/node_modules
+      - /app/apps/client/node_modules
+    networks:
+      - tirudesign-network
+    working_dir: /app
+    command: sh -lc "pnpm install --frozen-lockfile && pnpm --filter @tirudesign/client dev --host"
+
+  # Backoffice Frontend (Vite)
+  backoffice:
+    build:
+      context: .
+      dockerfile: ./apps/backoffice/Dockerfile
+    container_name: tirudesign-backoffice
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      VITE_API_URL: http://localhost:4001
+    ports:
+      - "5174:5173"
+    volumes:
+      - ./apps/backoffice:/app/apps/backoffice
+      - ./packages:/app/packages
+      - /app/node_modules
+      - /app/apps/backoffice/node_modules
+    networks:
+      - tirudesign-network
+    working_dir: /app
+    command: sh -lc "pnpm install --frozen-lockfile && pnpm --filter @tirudesign/backoffice dev --host"
+
+networks:
+  tirudesign-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:

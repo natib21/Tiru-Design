@@ -80,7 +80,7 @@ describe('Policy E2E Tests', () => {
 
       for (const action of actions) {
         const response = await request(httpServer)
-          .get(`/test/policy/${action}`)
+          .get(`/api/test/policy/${action}`)
           .set('Authorization', `Bearer ${accessToken}`);
 
         expect(response.status).toBe(HttpStatus.OK);
@@ -126,7 +126,7 @@ describe('Policy E2E Tests', () => {
 
       for (const action of allowedActions) {
         const response = await request(httpServer)
-          .get(`/test/policy/${action}`)
+          .get(`/api/test/policy/${action}`)
           .set('Authorization', `Bearer ${editor.accessToken}`)
           .set('X-Workspace-Id', workspaceId);
 
@@ -138,7 +138,7 @@ describe('Policy E2E Tests', () => {
 
       for (const action of forbiddenActions) {
         const response = await request(httpServer)
-          .get(`/test/policy/${action}`)
+          .get(`/api/test/policy/${action}`)
           .set('Authorization', `Bearer ${editor.accessToken}`)
           .set('X-Workspace-Id', workspaceId);
 
@@ -180,7 +180,7 @@ describe('Policy E2E Tests', () => {
 
       for (const action of allowedActions) {
         const response = await request(httpServer)
-          .get(`/test/policy/${action}`)
+          .get(`/api/test/policy/${action}`)
           .set('Authorization', `Bearer ${viewer.accessToken}`)
           .set('X-Workspace-Id', workspaceId);
 
@@ -199,7 +199,7 @@ describe('Policy E2E Tests', () => {
 
       for (const action of forbiddenActions) {
         const response = await request(httpServer)
-          .get(`/test/policy/${action}`)
+          .get(`/api/test/policy/${action}`)
           .set('Authorization', `Bearer ${viewer.accessToken}`)
           .set('X-Workspace-Id', workspaceId);
 
@@ -220,7 +220,7 @@ describe('Policy E2E Tests', () => {
       const client = prisma.client!;
 
       const response = await request(httpServer)
-        .get('/test/policy/unknown-action')
+        .get('/api/test/policy/unknown-action')
         .set('Authorization', `Bearer ${accessToken}`);
 
       expect(response.status).toBe(HttpStatus.FORBIDDEN);
@@ -245,7 +245,7 @@ describe('Policy E2E Tests', () => {
 
       // UserA tries to use userB's workspace
       const response = await request(httpServer)
-        .get('/test/policy/workspace-read')
+        .get('/api/test/policy/workspace-read')
         .set('Authorization', `Bearer ${userA.accessToken}`)
         .set('X-Workspace-Id', membershipB!.workspaceId);
 
@@ -282,7 +282,7 @@ describe('Policy E2E Tests', () => {
       });
 
       const response = await request(httpServer)
-        .get('/test/policy/workspace-read')
+        .get('/api/test/policy/workspace-read')
         .set('Authorization', `Bearer ${member.accessToken}`)
         .set('X-Workspace-Id', workspaceId);
 
@@ -319,7 +319,7 @@ describe('Policy E2E Tests', () => {
       });
 
       const response = await request(httpServer)
-        .get('/test/policy/workspace-read')
+        .get('/api/test/policy/workspace-read')
         .set('Authorization', `Bearer ${invitee.accessToken}`)
         .set('X-Workspace-Id', workspaceId);
 
@@ -338,7 +338,7 @@ describe('Policy E2E Tests', () => {
 
       // Should use personal workspace by default
       const response = await request(httpServer)
-        .get('/test/policy/workspace-read')
+        .get('/api/test/policy/workspace-read')
         .set('Authorization', `Bearer ${accessToken}`);
 
       expect(response.status).toBe(HttpStatus.OK);
@@ -354,13 +354,13 @@ describe('Policy E2E Tests', () => {
       const client = prisma.client!;
 
       const response = await request(httpServer)
-        .get('/test/policy/workspace-read')
+        .get('/api/test/policy/workspace-read')
         .set('Authorization', `Bearer ${accessToken}`)
         .set('X-Workspace-Id', 'invalid-id-format');
 
-      // getMembership returns null for invalid ID, WorkspaceGuard throws 403 FORBIDDEN
-      // But if the ID doesn't exist, it's treated as "not a member" which is 403
-      expect(response.status).toBe(HttpStatus.NOT_FOUND);
+      // getMembership returns null for invalid/non-existent ID
+      // WorkspaceGuard throws 403 FORBIDDEN for non-members
+      expect(response.status).toBe(HttpStatus.FORBIDDEN);
 
       // Cleanup
       try {

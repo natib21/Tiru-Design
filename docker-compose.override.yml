@@ -1,0 +1,53 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: ./apps/api/Dockerfile
+      target: dev
+    environment:
+      NODE_ENV: development
+      API_HOST: 0.0.0.0
+      API_PORT: 4000
+      DATABASE_URL: postgresql://tirudesign:tirudesign_dev_password@postgres:5432/tirudesign
+      REDIS_URL: redis://redis:6379
+      CORS_ORIGINS: http://localhost:5173,http://localhost:5174
+    volumes:
+      - ./apps/api:/app/apps/api:cached
+      - ./packages:/app/packages:cached
+      - /app/node_modules
+      - /app/apps/api/node_modules
+    command: sh -lc "pnpm install --frozen-lockfile && pnpm --filter @tirudesign/api-app prisma:generate && pnpm --filter @tirudesign/api-app dev"
+
+  client:
+    build:
+      context: .
+      dockerfile: ./apps/client/Dockerfile
+      target: dev
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      VITE_API_URL: http://localhost:4001
+    volumes:
+      - ./apps/client:/app/apps/client:cached
+      - ./packages:/app/packages:cached
+      - /app/node_modules
+      - /app/apps/client/node_modules
+    command: sh -lc "pnpm install --frozen-lockfile && pnpm --filter @tirudesign/client dev --host"
+
+  backoffice:
+    build:
+      context: .
+      dockerfile: ./apps/backoffice/Dockerfile
+      target: dev
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      VITE_API_URL: http://localhost:4001
+    volumes:
+      - ./apps/backoffice:/app/apps/backoffice:cached
+      - ./packages:/app/packages:cached
+      - /app/node_modules
+      - /app/apps/backoffice/node_modules
+    command: sh -lc "pnpm install --frozen-lockfile && pnpm --filter @tirudesign/backoffice dev --host"
