@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 import { PrismaService } from '../../../infrastructure/database/prisma.service';
 import { CreateProjectDto, UpdateProjectDto, UpdateContentDto, ListProjectsDto } from '../dto';
 import { validateProjectContent, createBlankContent, ProjectContent } from '../schemas/content.schema';
@@ -126,47 +126,56 @@ export class ProjectsService {
       throw new BadRequestException(`Invalid content: ${validation.error}`);
     }
 
-    // Atomic update with version check in WHERE clause
-    const result = await client.project.updateMany({
-      where: {
-        id: projectId,
-        workspaceId, // Tenancy check
-        deletedAt: null, // Must not be deleted
-        version: dto.version, // Version check for optimistic locking
-      },
-      data: {
-        content: validation.data as any,
-        schemaVersion: validation.data!.schemaVersion,
-        version: { increment: 1 },
-      },
-    });
-
-    // If no rows updated, either version mismatch or project doesn't exist
-    if (result.count === 0) {
-      // Check if project exists to give better error message
-      const project = await client.project.findFirst({
+    try {
+      // Atomic update with version check in WHERE clause
+      const updated = await client.project.update({
         where: {
           id: projectId,
-          workspaceId,
-          deletedAt: null,
+          workspaceId, // Tenancy check
+          deletedAt: null, // Must not be deleted
+          version: dto.version, // Version check for optimistic locking
+        },
+        data: {
+          content: validation.data as any,
+          schemaVersion: validation.data!.schemaVersion,
+          version: { increment: 1 },
+        },
+        select: {
+          id: true,
+          version: true,
+          updatedAt: true,
         },
       });
 
-      if (!project) {
-        throw new NotFoundException('Project not found');
+      return updated;
+    } catch (error: any) {
+      // Handle Prisma P2025: Record not found (no matching row)
+      if (error.code === 'P2025') {
+        // Check if project exists to give better error message
+        const project = await client.project.findFirst({
+          where: {
+            id: projectId,
+            workspaceId,
+            deletedAt: null,
+          },
+        });
+
+        if (!project) {
+          throw new NotFoundException('Project not found');
+        }
+
+        throw new HttpException(
+          {
+            statusCode: HttpStatus.CONFLICT,
+            message: `Version mismatch: expected ${project.version}, received ${dto.version}. Content was modified by another session.`,
+            error: 'CONFLICT',
+            currentVersion: project.version,
+          },
+          HttpStatus.CONFLICT,
+        );
       }
-
-      throw new ConflictException(
-        `Version mismatch: expected ${project.version}, received ${dto.version}. Content was modified by another session.`
-      );
+      throw error;
     }
-
-    // Fetch and return the updated project
-    const updated = await client.project.findUniqueOrThrow({
-      where: { id: projectId },
-    });
-
-    return updated;
   }
 
   /**

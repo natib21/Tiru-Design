@@ -24,6 +24,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
     let error = 'INTERNAL_SERVER_ERROR';
+    const extraFields: Record<string, unknown> = {};
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
@@ -35,6 +36,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
         const responseObj = exceptionResponse as Record<string, unknown>;
         message = (responseObj.message as string) || message;
         error = (responseObj.error as string) || this.getErrorCode(status);
+        
+        // Preserve extra fields (like currentVersion) from the exception
+        Object.keys(responseObj).forEach(key => {
+          if (key !== 'message' && key !== 'error' && key !== 'statusCode') {
+            extraFields[key] = responseObj[key];
+          }
+        });
       }
     } else if (exception instanceof Error) {
       message = exception.message;
@@ -63,7 +71,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
       message,
       error,
       timestamp: new Date().toISOString(),
-      path: request.url
+      path: request.url,
+      ...extraFields,
     };
 
     response.status(status).json(errorResponse);

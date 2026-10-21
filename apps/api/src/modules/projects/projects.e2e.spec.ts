@@ -500,7 +500,9 @@ describe('Projects E2E Tests', () => {
 
       expect(response.status).toBe(HttpStatus.OK);
       expect(response.body.version).toBe(currentVersion + 1);
-      expect(response.body.content.canvas.background).toBe('#000000');
+      expect(response.body.id).toBe(projectId);
+      expect(response.body.updatedAt).toBeDefined();
+      expect(response.body.content).toBeUndefined(); // Content not included in autosave response
 
       // Cleanup
       try {
@@ -535,6 +537,7 @@ describe('Projects E2E Tests', () => {
 
       expect(response.status).toBe(HttpStatus.CONFLICT);
       expect(response.body.message).toContain('Version mismatch');
+      expect(response.body.currentVersion).toBe(2); // Current version after first update
 
       // Cleanup
       try {
