@@ -1,4 +1,4 @@
-import { beforeAll, afterAll } from 'vitest';
+import { beforeAll, beforeEach, afterAll } from 'vitest';
 import { PrismaClient } from '@prisma/client';
 
 // Force use of test database
@@ -40,12 +40,21 @@ beforeAll(async () => {
     await prisma.membership.deleteMany({});
     await prisma.workspace.deleteMany({});
     await prisma.user.deleteMany({});
+    await prisma.project.deleteMany({});
     
     console.log('Test database cleaned successfully');
   } catch (error) {
     console.error('Error cleaning test database:', error);
     throw error;
   }
+});
+
+beforeEach(async () => {
+  // Clear Redis test database (database 1) before each test to reset rate limits
+  const Redis = (await import('ioredis')).default;
+  const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379/1');
+  await redis.flushdb(); // FLUSHDB only clears current database (1), not all databases
+  await redis.quit();
 });
 
 afterAll(async () => {

@@ -7,159 +7,16 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model EmailVerification {
-  id         String    @id
-  userId     String
-  tokenHash  String
-  expiresAt  DateTime
-  consumedAt DateTime?
-  createdAt  DateTime  @default(now())
-  User       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-}
-
-model HealthCheck {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  note      String?
-}
-
-model Membership {
-  id          String           @id
-  userId      String
-  workspaceId String
-  role        MembershipRole
-  status      MembershipStatus @default(ACTIVE)
-  createdAt   DateTime         @default(now())
-  User        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  Workspace   Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, workspaceId])
-  @@index([userId])
-  @@index([workspaceId])
-}
-
-model PasswordResetToken {
-  id         String    @id
-  userId     String
-  tokenHash  String
-  expiresAt  DateTime
-  consumedAt DateTime?
-  createdAt  DateTime  @default(now())
-  User       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-}
-
-model PhoneVerification {
-  id         String    @id
-  userId     String
-  otpHash    String
-  attempts   Int       @default(0)
-  expiresAt  DateTime
-  consumedAt DateTime?
-  createdAt  DateTime  @default(now())
-  User       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-}
-
-model SecurityEvent {
-  id        String            @id
-  userId    String?
-  eventType SecurityEventType
-  ipAddress String?
-  userAgent String?
-  metadata  Json?
-  createdAt DateTime          @default(now())
-
-  @@index([createdAt])
-  @@index([eventType])
-  @@index([userId])
-}
-
-model Session {
-  id                  String    @id
-  userId              String
-  currentRefreshHash  String?   @unique
-  previousRefreshHash String
-  expiresAt           DateTime
-  revokedAt           DateTime?
-  ipAddress           String?
-  userAgent           String?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime
-  User                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([expiresAt])
-  @@index([userId])
-}
-
-model User {
-  id                 String               @id
-  email              String               @unique
-  phoneNumber        String?              @unique
-  passwordHash       String
-  emailVerifiedAt    DateTime?
-  phoneVerifiedAt    DateTime?
-  status             UserStatus           @default(UNVERIFIED)
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime
-  lastLoginAt        DateTime?
-  EmailVerification  EmailVerification[]
-  Membership         Membership[]
-  PasswordResetToken PasswordResetToken[]
-  PhoneVerification  PhoneVerification[]
-  Session            Session[]
-  UserIdentity       UserIdentity[]
-
-  @@index([status])
-}
-
-model UserIdentity {
-  id             String       @id
-  userId         String
-  provider       AuthProvider
-  providerUserId String
-  email          String?
-  displayName    String?
-  avatarUrl      String?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime
-  User           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerUserId])
-  @@index([userId])
-}
-
-model Workspace {
-  id         String        @id
-  type       WorkspaceType
-  name       String
-  plan       String        @default("free")
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime
-  Membership Membership[]
-
-  @@index([type])
+enum UserStatus {
+  UNVERIFIED
+  ACTIVE
+  SUSPENDED
+  DEACTIVATED
 }
 
 enum AuthProvider {
   EMAIL
   GOOGLE
-}
-
-enum MembershipRole {
-  OWNER
-  EDITOR
-  VIEWER
-}
-
-enum MembershipStatus {
-  ACTIVE
-  INVITED
-  REMOVED
 }
 
 enum SecurityEventType {
@@ -176,14 +33,194 @@ enum SecurityEventType {
   ACCOUNT_DEACTIVATED
 }
 
-enum UserStatus {
-  UNVERIFIED
-  ACTIVE
-  SUSPENDED
-  DEACTIVATED
-}
-
 enum WorkspaceType {
   PERSONAL
   TEAM
+}
+
+enum MembershipRole {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+enum MembershipStatus {
+  ACTIVE
+  INVITED
+  REMOVED
+}
+
+enum ProjectStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+model HealthCheck {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  note      String?
+}
+
+model User {
+  id              String     @id @default(cuid())
+  email           String     @unique
+  name            String?
+  phoneNumber     String?    @unique
+  passwordHash    String?
+  emailVerifiedAt DateTime?
+  phoneVerifiedAt DateTime?
+  status          UserStatus @default(UNVERIFIED)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  lastLoginAt     DateTime?
+
+  sessions            Session[]
+  phoneVerifications  PhoneVerification[]
+  emailVerifications  EmailVerification[]
+  passwordResetTokens PasswordResetToken[]
+  identities          UserIdentity[]
+  memberships         Membership[]
+  projects            Project[]
+
+  @@index([status])
+}
+
+model UserIdentity {
+  id             String       @id @default(cuid())
+  userId         String
+  provider       AuthProvider
+  providerUserId String
+  email          String?
+  displayName    String?
+  avatarUrl      String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  @@index([userId])
+}
+
+model Session {
+  id                  String    @id @default(cuid())
+  userId              String
+  currentRefreshHash  String?   @unique
+  previousRefreshHash String?
+  expiresAt           DateTime
+  revokedAt           DateTime?
+  ipAddress           String?
+  userAgent           String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([previousRefreshHash])
+}
+
+model PhoneVerification {
+  id         String    @id @default(cuid())
+  userId     String
+  otpHash    String
+  attempts   Int       @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model EmailVerification {
+  id         String    @id @default(cuid())
+  userId     String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id         String    @id @default(cuid())
+  userId     String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model SecurityEvent {
+  id        String            @id @default(cuid())
+  userId    String?
+  eventType SecurityEventType
+  ipAddress String?
+  userAgent String?
+  metadata  Json?
+  createdAt DateTime          @default(now())
+
+  @@index([userId])
+  @@index([eventType])
+  @@index([createdAt])
+}
+
+model Workspace {
+  id        String        @id @default(cuid())
+  type      WorkspaceType
+  name      String
+  plan      String        @default("free")
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  memberships Membership[]
+  projects    Project[]
+
+  @@index([type])
+}
+
+model Membership {
+  id          String           @id @default(cuid())
+  userId      String
+  workspaceId String
+  role        MembershipRole
+  status      MembershipStatus @default(ACTIVE)
+  createdAt   DateTime         @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId])
+  @@index([workspaceId])
+  @@index([userId])
+}
+
+model Project {
+  id            String        @id @default(cuid())
+  workspaceId   String
+  createdById   String
+  name          String
+  status        ProjectStatus @default(ACTIVE)
+  content       Json
+  schemaVersion Int
+  version       Int           @default(1)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  deletedAt     DateTime?
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation(fields: [createdById], references: [id])
+
+  @@index([workspaceId])
+  @@index([workspaceId, updatedAt])
 }

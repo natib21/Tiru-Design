@@ -1,10 +1,16 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { HttpExceptionFilter } from './filters/http-exception.filter';
 
 export function setupApp(app: INestApplication): void {
   // Global exception filter
   app.useGlobalFilters(new HttpExceptionFilter());
+  
+  // Increase body size limit to 3MB (validation rejects >2MB with 400)
+  const expressApp = app as NestExpressApplication;
+  expressApp.useBodyParser('json', { limit: '3mb' });
+  expressApp.useBodyParser('urlencoded', { limit: '3mb', extended: true });
   
   // Global prefix
   app.setGlobalPrefix('api', { exclude: ['health', 'ready'] });

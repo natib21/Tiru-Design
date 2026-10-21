@@ -1,1 +1,4 @@
-﻿export {};
+﻿export * from './create-project.dto';
+export * from './update-project.dto';
+export * from './update-content.dto';
+export * from './list-projects.dto';

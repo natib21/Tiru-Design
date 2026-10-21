@@ -19,7 +19,7 @@ export class WorkspacesService {
       }
     });
 
-    return memberships.map(m => ({
+    return memberships.map((m: typeof memberships[0]) => ({
       id: m.workspace.id,
       type: m.workspace.type,
       name: m.workspace.name,
@@ -34,7 +34,7 @@ export class WorkspacesService {
     const client = this.prisma.client;
     if (!client) throw new Error('Database client not available');
 
-    const result = await client.$transaction(async (tx) => {
+    const result = await client.$transaction(async (tx: typeof client) => {
       const workspace = await tx.workspace.create({
         data: {
           type: 'TEAM',

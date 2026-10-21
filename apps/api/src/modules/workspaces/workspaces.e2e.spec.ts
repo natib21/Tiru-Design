@@ -121,7 +121,7 @@ describe('Workspaces E2E Tests', () => {
 
       // Now try to create a second personal workspace - should fail and rollback
       await expect(
-        client.$transaction(async (tx) => {
+        client.$transaction(async (tx: typeof client) => {
           const workspace = await tx.workspace.create({
             data: {
               type: 'PERSONAL',

@@ -38,6 +38,20 @@ export class HttpExceptionFilter implements ExceptionFilter {
       }
     } else if (exception instanceof Error) {
       message = exception.message;
+      
+      // Preserve HTTP status from Express/body-parser errors
+      const errorWithStatus = exception as Error & { status?: number; statusCode?: number; type?: string };
+      if (errorWithStatus.status && errorWithStatus.status >= 400 && errorWithStatus.status < 600) {
+        status = errorWithStatus.status;
+        error = this.getErrorCode(status);
+      } else if (errorWithStatus.statusCode && errorWithStatus.statusCode >= 400 && errorWithStatus.statusCode < 600) {
+        status = errorWithStatus.statusCode;
+        error = this.getErrorCode(status);
+      } else if (errorWithStatus.type === 'entity.too.large') {
+        status = HttpStatus.PAYLOAD_TOO_LARGE; // 413
+        error = 'PAYLOAD_TOO_LARGE';
+      }
+      
       // Never expose stack traces in production
       if (process.env.NODE_ENV !== 'production') {
         console.error('Unhandled exception:', exception);
@@ -62,6 +76,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       403: 'FORBIDDEN',
       404: 'NOT_FOUND',
       409: 'CONFLICT',
+      413: 'PAYLOAD_TOO_LARGE',
       422: 'UNPROCESSABLE_ENTITY',
       429: 'TOO_MANY_REQUESTS',
       500: 'INTERNAL_SERVER_ERROR',

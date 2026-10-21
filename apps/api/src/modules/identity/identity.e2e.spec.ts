@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, HttpStatus } from '@nestjs/common';
 import { AppModule } from '../../app.module';
 import { PrismaService } from '../../infrastructure/database/prisma.service';
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import request from 'supertest';
 import { setupApp } from '../../common/app-setup';
 
@@ -542,7 +542,7 @@ describe('Identity E2E Tests', () => {
         
         // Manually create user and then try to violate the constraint
         await expect(
-          client.$transaction(async (tx) => {
+          client.$transaction(async (tx: typeof client) => {
             const newUser = await tx.user.create({
               data: {
                 email: testEmail,

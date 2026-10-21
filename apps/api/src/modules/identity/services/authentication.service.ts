@@ -46,7 +46,7 @@ export class AuthenticationService {
     if (!prisma) throw new Error('Database client not available');
 
     // Create user, personal workspace, and membership in a single transaction
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: typeof prisma) => {
       const user = await tx.user.create({
         data: { email, phoneNumber, passwordHash }
       });
@@ -330,7 +330,7 @@ export class AuthenticationService {
       // Create new user from Google profile WITH personal workspace
       const passwordHash = await this.identityService.hashPassword(`${this.identityService.generateToken()}${data.googleId}`);
       
-      user = await prisma.$transaction(async (tx) => {
+      user = await prisma.$transaction(async (tx: typeof prisma) => {
         const newUser = await tx.user.create({
           data: {
             email,

@@ -9,6 +9,7 @@ import { LoggingModule } from './infrastructure/logging/logging.module';
 import { TemplatesModule } from './modules/templates/templates.module';
 import { IdentityModule } from './modules/identity';
 import { WorkspacesModule } from './modules/workspaces/workspaces.module';
+import { ProjectsModule } from './modules/projects/projects.module';
 
 @Module({
   imports: [
@@ -23,7 +24,8 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     LoggingModule,
     TemplatesModule,
     IdentityModule,
-    WorkspacesModule
+    WorkspacesModule,
+    ProjectsModule
   ],
   controllers: [],
   providers: [PrismaService]
