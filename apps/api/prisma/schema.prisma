@@ -55,6 +55,23 @@ enum ProjectStatus {
   ARCHIVED
 }
 
+enum PlatformRole {
+  NONE
+  ADMIN
+}
+
+enum TemplateLanguage {
+  AMHARIC
+  ENGLISH
+  BILINGUAL
+}
+
+enum TemplateStatus {
+  DRAFT
+  PUBLISHED
+  UNPUBLISHED
+}
+
 model HealthCheck {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
@@ -62,16 +79,17 @@ model HealthCheck {
 }
 
 model User {
-  id              String     @id @default(cuid())
-  email           String     @unique
+  id              String       @id @default(cuid())
+  email           String       @unique
   name            String?
-  phoneNumber     String?    @unique
+  phoneNumber     String?      @unique
   passwordHash    String?
   emailVerifiedAt DateTime?
   phoneVerifiedAt DateTime?
-  status          UserStatus @default(UNVERIFIED)
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  status          UserStatus   @default(UNVERIFIED)
+  platformRole    PlatformRole @default(NONE)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
   lastLoginAt     DateTime?
 
   sessions            Session[]
@@ -185,6 +203,7 @@ model Workspace {
 
   memberships Membership[]
   projects    Project[]
+  templates   Template[]
 
   @@index([type])
 }
@@ -206,21 +225,47 @@ model Membership {
 }
 
 model Project {
-  id            String        @id @default(cuid())
-  workspaceId   String
-  createdById   String
-  name          String
-  status        ProjectStatus @default(ACTIVE)
-  content       Json
-  schemaVersion Int
-  version       Int           @default(1)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  deletedAt     DateTime?
+  id                    String        @id @default(cuid())
+  workspaceId           String
+  createdById           String
+  name                  String
+  status                ProjectStatus @default(ACTIVE)
+  content               Json
+  schemaVersion         Int
+  version               Int           @default(1)
+  sourceTemplateId      String?
+  sourceTemplateVersion Int?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  deletedAt             DateTime?
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdBy User      @relation(fields: [createdById], references: [id])
 
   @@index([workspaceId])
   @@index([workspaceId, updatedAt])
+}
+
+model Template {
+  id               String           @id @default(cuid())
+  ownerWorkspaceId String?
+  title            String
+  description      String?
+  category         String
+  language         TemplateLanguage
+  status           TemplateStatus   @default(DRAFT)
+  priceMinor       Int              @default(0)
+  thumbnailKey     String?
+  content          Json
+  schemaVersion    Int
+  version          Int              @default(1)
+  placeholderKeys  Json             @default("[]")
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  publishedAt      DateTime?
+
+  ownerWorkspace Workspace? @relation(fields: [ownerWorkspaceId], references: [id], onDelete: SetNull)
+
+  @@index([status, category])
+  @@index([ownerWorkspaceId])
 }

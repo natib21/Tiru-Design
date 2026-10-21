@@ -1,13 +1,14 @@
 import { Module } from '@nestjs/common';
-import { BullModule } from '@nestjs/bullmq';
-import { TemplatesController } from './templates.controller';
-import { TemplatesService } from './templates.service';
-import { TemplateRenderProcessor } from './template-render.processor';
+import { TemplatesService } from './services/templates.service';
+import { TemplatesController } from './controllers/templates.controller';
+import { AdminTemplatesController } from './controllers/admin-templates.controller';
+import { PrismaService } from '../../infrastructure/database/prisma.service';
+import { WorkspacesModule } from '../workspaces/workspaces.module';
 
 @Module({
-  imports: [BullModule.registerQueue({ name: 'template-render' })],
-  controllers: [TemplatesController],
-  providers: [TemplatesService, TemplateRenderProcessor],
-  exports: [TemplatesService]
+  imports: [WorkspacesModule],
+  controllers: [TemplatesController, AdminTemplatesController],
+  providers: [TemplatesService, PrismaService],
+  exports: [TemplatesService],
 })
 export class TemplatesModule {}

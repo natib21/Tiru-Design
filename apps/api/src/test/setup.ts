@@ -38,9 +38,10 @@ beforeAll(async () => {
     await prisma.session.deleteMany({});
     await prisma.userIdentity.deleteMany({});
     await prisma.membership.deleteMany({});
+    await prisma.template.deleteMany({});
+    await prisma.project.deleteMany({});
     await prisma.workspace.deleteMany({});
     await prisma.user.deleteMany({});
-    await prisma.project.deleteMany({});
     
     console.log('Test database cleaned successfully');
   } catch (error) {
