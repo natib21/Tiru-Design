@@ -91,6 +91,9 @@ export class AuthenticationService {
       });
 
       return user;
+    }, {
+      maxWait: 10000, // 10s max wait to start
+      timeout: 15000  // 15s max execution
     });
 
     return {
@@ -360,6 +363,9 @@ export class AuthenticationService {
         });
 
         return newUser;
+      }, {
+        maxWait: 10000, // 10s max wait to start
+        timeout: 15000  // 15s max execution
       });
     } else {
       // User exists - only link if their email is verified

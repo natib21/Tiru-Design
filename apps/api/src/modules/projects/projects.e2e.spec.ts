@@ -26,6 +26,7 @@ describe('Projects E2E Tests', () => {
   });
 
   afterAll(async () => {
+    await prisma.client?.$disconnect();
     await app.close();
   });
 

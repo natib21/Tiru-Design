@@ -77,6 +77,7 @@ describe('Identity E2E Tests', () => {
   });
 
   afterAll(async () => {
+    await prisma.client?.$disconnect();
     await app.close();
   }, 30000); // 30 second timeout for teardown
 

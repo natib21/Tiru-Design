@@ -70,6 +70,7 @@ describe('Workspaces E2E Tests', () => {
   });
 
   afterAll(async () => {
+    await prisma.client?.$disconnect();
     await app.close();
   }, 30000);
 

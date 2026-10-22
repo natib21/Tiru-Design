@@ -17,7 +17,11 @@ export class IdentityService {
   }
 
   async hashPassword(password: string) {
-    return argon2.hash(password);
+    const options = process.env.NODE_ENV === 'test'
+      ? { memoryCost: 2048, timeCost: 2, parallelism: 1 } // Fast for tests
+      : {}; // Use argon2 defaults (strong) for production
+    
+    return argon2.hash(password, options);
   }
 
   async verifyPassword(password: string, hash: string) {
