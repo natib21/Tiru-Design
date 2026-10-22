@@ -1,0 +1,7 @@
+@import "tailwindcss";
+
+:root {
+  --primary-h: 210;
+  --primary-s: 92%;
+  --primary-l: 53%;
+}

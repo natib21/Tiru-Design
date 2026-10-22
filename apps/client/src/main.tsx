@@ -1,15 +1,12 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import './index.css';
+import '@/shared/styles/index.css';
 import '@fontsource-variable/noto-sans';
 import '@fontsource/noto-sans-ethiopic';
-import { AppProviders } from './app/providers';
-import AppRouter from './app/router';
+import { App } from '@/app/App';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <AppProviders>
-      <AppRouter />
-    </AppProviders>
+    <App />
   </StrictMode>,
 );
