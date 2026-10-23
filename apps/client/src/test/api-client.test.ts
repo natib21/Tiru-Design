@@ -1,10 +1,13 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
-import { client, ApiError } from '@/shared/api';
+import { client as baseClient, ApiError } from '@/shared/api';
+import type { TestClient } from './test-api-types';
 import { env } from '@/shared/config/env';
 import { useAuthStore } from '@/features/auth';
 import { useActiveWorkspaceStore } from '@/features/workspaces';
+
+const client = baseClient as unknown as TestClient;
 
 const server = setupServer();
 

@@ -1,0 +1,7 @@
+{
+  "name": "TiruDesign",
+  "description": "TiruDesign — design platform for Ethiopia",
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

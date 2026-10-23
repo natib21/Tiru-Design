@@ -11,7 +11,7 @@ export type Env = z.infer<typeof envSchema>;
 
 function loadEnv(): Env {
   const result = envSchema.safeParse({
-    VITE_API_URL: import.meta.env.VITE_API_URL,
+    VITE_API_URL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
   });
 
   if (!result.success) {

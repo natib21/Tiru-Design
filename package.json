@@ -1,22 +1,18 @@
 {
   "name": "tirudesign",
   "private": true,
-  "packageManager": "pnpm@10.15.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "docker compose -f docker-compose.yml -f docker-compose.override.yml --env-file .env.dev up --build -d",
-    "dev:client": "pnpm --filter @tirudesign/client dev",
+    "dev": "npm run dev --workspace=@tirudesign/client",
+    "build": "npm run build --workspace=@tirudesign/client",
+    "dev:client": "npm run dev --workspace=@tirudesign/client",
     "dev:all": "turbo run dev --parallel",
-    "build": "turbo run build",
-    "lint": "turbo run lint",
-    "typecheck": "turbo run typecheck",
-    "test": "turbo run test",
-    "test:e2e": "pnpm --filter @tirudesign/client test:e2e",
-    "docker:up": "docker compose -f docker-compose.yml -f docker-compose.override.yml --env-file .env.dev up -d",
-    "docker:down": "docker compose down",
-    "docker:logs": "docker compose logs -f",
-    "docker:build": "docker compose -f docker-compose.yml -f docker-compose.override.yml --env-file .env.dev build",
-    "docker:clean": "docker compose down -v",
-    "docker:restart": "docker compose restart"
+    "lint": "npm run lint --workspace=@tirudesign/client",
+    "typecheck": "npm run typecheck --workspace=@tirudesign/client",
+    "test": "npm run test --workspace=@tirudesign/client"
   },
   "devDependencies": {
     "turbo": "^1.12.3",
