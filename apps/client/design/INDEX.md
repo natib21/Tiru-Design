@@ -30,68 +30,55 @@ This document provides a comprehensive inventory of all design screens located i
 
 Comparison of all design screens against `packages/ui/src/tokens.ts` and `apps/client/src/shared/ui/`:
 
-### A. Colors that are not tokens
-- **`05-editor/11-canvas-editor-default-desktop.png`**: Text property inputs display `#0F172A` (slate-900) instead of the design token `colors.text` (`#3F4851`) or `colors.foreground`.
-- **`01-auth/01-login-default-desktop.png` & Mobile**: Google OAuth button uses Google blue `#4285F4`; not in tokens.
-- **`01-auth/01-login-account-locked-desktop.png` & `01-auth/02-signup-validation-error-mobile.png`**: Error banner background uses a light salmon tint (`#FEE2E2` or `rgba(220, 38, 38, 0.08)`), but `tokens.colors` only defines `danger: '#DC2626'`.
-- **`04-templates/06-template-detail-free-desktop.png`, `04-templates/10-template-detail-paid-desktop.png`, `02-dashboard/03-dashboard-default-desktop.png`**: Golden badge highlights ("PRO", "Community Pick", "40% Off", "Authentic Tibeb") use amber/gold tones (`#D97706`, `#B45309`), whereas `tokens.colors` only provides `warning: '#FACC15'`.
-- **`06-export/12-export-default-desktop.png`**: "Upgrade to Pro" pill button uses an untokenized deep blue-purple gradient.
+### A. Colors & Token Policy
+- **Brand Exemption**: The Google Sign-In button (`#4285F4`) is **exempt from design tokens** per official Google brand guidelines.
+- **Code Tokens to Add (Not Figma Problems)**:
+  - `colors.dangerSurface` (`#FEE2E2` / `#FEF2F2`): Light salmon/red surface tint for error and warning banners (e.g. `01-login-account-locked-desktop.png`, `02-signup-validation-error-mobile.png`).
+  - `colors.warningText` / gold badge tones (`#D97706`, `#B45309`): Amber and gold text/border accents for badges ("PRO", "Community Pick", "40% Off", "Authentic Tibeb").
+- **Untokenized Colors (Figma Issues)**:
+  - `05-editor/11-canvas-editor-default-desktop.png`: Text property inputs display `#0F172A` (slate-900) instead of token `colors.text` (`#3F4851`).
+  - `06-export/12-export-default-desktop.png`: "Upgrade to Pro" pill button uses an untokenized deep blue-purple gradient; should map to `colors.primary`.
 
-### B. Text that looks under 16px on mobile (< 16px triggers iOS Safari auto-zoom and impairs legibility)
-- **`01-auth/02-signup-default-mobile.png`**: Terms of Service and Privacy Policy checkbox label is ~12px.
-- **`01-auth/02-signup-validation-error-mobile.png`**: Character counter `"6 / 8 chars"` and helper validation text are ~12px.
-- **`01-auth/01-login-account-locked-mobile.png`**: "Why did this happen?" body text is ~12px; security lockout subtext is ~11px.
-- **`01-auth/01-login-incorrect-password-mobile.png`**: Draft banner text `"Draft saved 2 hours ago • ..."` is ~12px.
-- **`01-auth/07-forgot-password-default-mobile.png` & `01-auth/07-forgot-password-link-sent-mobile.png`**: Footer links ("Privacy", "Help") and copyright text are ~12px.
+### B. Typography & Sizing Rules
+- **Rule Hierarchy**:
+  - **Form Inputs**: 16px minimum (strictly enforced to prevent iOS Safari auto-zoom).
+  - **Body Text**: 14px minimum for sustained legibility.
+  - **Helper & Secondary Text**: 12px is acceptable (captions, character counters like `"6 / 8 chars"`, validation helper messages, and footer copyright/links).
+- **Audit Findings**:
+  - `01-auth/02-signup-default-mobile.png`: Terms and Privacy checkbox label is ~12px (acceptable helper text).
+  - `01-auth/02-signup-validation-error-mobile.png`: Character counter and helper validation messages are ~12px (acceptable helper text).
+  - `01-auth/01-login-account-locked-mobile.png`: Security lockout subtext at ~11px should be raised to 12px minimum.
+  - `01-auth/01-login-incorrect-password-mobile.png`: Draft banner text is ~12px; the entire "Draft saved" banner is dropped per DECISIONS.md.
+  - `01-auth/07-forgot-password-default-mobile.png` & `09-verify-email-*-mobile.png`: Footer links at ~12px are acceptable.
 
-### C. Tap targets that look under 44px (WCAG 2.5.5 touch target violation)
-- **All Mobile screens in `01-auth/`**: The top language toggle (`EN | አማ`) is ~32px tall; below the 44px minimum touch target.
-- **`01-auth/02-signup-default-mobile.png`**: Checkbox hit area is ~20px with insufficient clickable padding.
-- **`01-auth/01-login-default-mobile.png`**: "Forgot password?" inline link has a target height under 28px.
-- **`01-auth/01-login-default-mobile.png` & `01-auth/08-reset-password-default-mobile.png`**: Password show/hide eye icon is ~24x24px without extended tap padding.
-- **`01-auth/01-login-account-locked-mobile.png`**: "Telegram ID" and "Login with SMS" buttons have narrow vertical heights (~36px).
+### C. Tap Targets (Fixed in Code)
+- **Policy**: Visual design elements that are under 44px (e.g. 32px language toggles, 20px checkboxes, 24px password show/hide icons, inline links) are **fixed in code by extending the hit area** (via touch target padding and bounding pseudo-elements) to meet WCAG 2.5.5 without altering visual layout proportions.
+- Affected components handled in code:
+  - Language toggle (`EN | አማ`)
+  - Terms checkbox touch hit area
+  - Password visibility eye toggle icon button
+  - "Forgot password?" and "Back to log in" text links
 
 ### D. Buttons that are not one of the 4 defined types (primary, outline, ghost, icon)
-- **`01-auth/01-login-account-locked-mobile.png`**: "Login with SMS" and "Telegram ID" use an undocumented light-tinted icon pill style.
+- **`01-auth/01-login-account-locked-mobile.png`**: "Login with SMS" and "Telegram ID" use an undocumented light-tinted icon pill style (dropped per DECISIONS.md).
 - **`06-export/12-export-default-desktop.png`**: "Upgrade to Pro" button is styled as a saturated gradient pill with mixed Amharic/English text.
 - **`02-dashboard/03-dashboard-default-desktop.png` & `04-templates/05-template-gallery-default-desktop.png`**: Filter pills ("Wedding ( )", "Church ( )", etc.) are toggleable tag chips, not standard buttons.
-- **`03-onboarding/04-onboarding-default-desktop.png`**: Format selection cards function as interactive selectable tiles with checkmarks, not covered by standard button variants.
+- **`03-onboarding/04-onboarding-default-desktop.png`**: Format selection cards function as interactive selectable tiles with checkmarks.
 
 ### E. Mobile and Desktop versions that differ in structure or wording
-- **`01-auth/01-login-account-locked-*`**:
-  - *Mobile* (`395x1340px`) introduces an "ACTIVE SESSION PROTECTION" card, "Login with SMS", and "Telegram ID" buttons.
-  - *Desktop* completely omits these three elements, displaying only the standard lockout countdown and reset password CTA.
-- **`01-auth/01-login-default-*`**:
-  - *Desktop* has a "Remember this device" checkbox.
-  - *Mobile* omits the checkbox and adds an "Ethiopian Creative Suite PRO" promotional banner.
-- **`01-auth/08-reset-password-link-expired-*`**:
-  - *Desktop* heading: `"This reset link isn't valid"`.
-  - *Mobile* heading: `"Reset link expired"`.
-- **`01-auth/07-forgot-password-link-sent-*`**:
-  - *Desktop* body: `"Check your inbox and spam folder. Open the link in the email to choose a new password."`.
-  - *Mobile* body: `"Open the link in your email to choose a new password. If it hasn't arrived, check your spam folder."`.
-- **`01-auth/09-verify-email-link-expired-*`**:
-  - *Desktop* body: `"Send a new email to confirm your address."`.
-  - *Mobile* body: `"Send a new link to confirm your email."`.
+- **`01-auth/01-login-account-locked-*`**: Mobile introduces SMS and Telegram login; dropped per DECISIONS.md to align with desktop lockout countdown and reset link.
+- **`01-auth/01-login-default-*`**: Desktop has "Remember this device" checkbox; dropped per DECISIONS.md because backend has no `rememberMe` DTO or conditional refresh expiry.
+- **`01-auth/08-reset-password-link-expired-*`**: Adopt desktop heading: `"This reset link isn't valid"`.
+- **`01-auth/07-forgot-password-link-sent-*`**: Adopt desktop body: `"Check your inbox and spam folder. Open the link in the email to choose a new password."`.
+- **`01-auth/09-verify-email-link-expired-*`**: Adopt mobile body: `"Send a new link to confirm your email."`.
 
-### F. Text that looks cut off or crowded (especially Amharic)
-- **`02-dashboard/03-dashboard-default-desktop.png`**:
-  - Greeting heading reads `", Dawit! 👋"` — the preceding Amharic greeting word is completely missing.
-  - Category filter pills display empty parentheses: `"Wedding ( )"`, `"Graduation ( )"`, `"Church ( )"`.
-  - Action button reads `"Create new design ( )"`.
-  - Section headers read `"Recent Projects ( )"` and `"Recommended for Ethiopian Creators ( )"`.
-- **`04-templates/05-template-gallery-default-desktop.png` & `04-templates/05-template-gallery-empty-desktop.png`**:
-  - Filter pills have blank parentheses: `"Wedding ( )"`, `"Graduation ( )"`, `"Church & Faith ( )"`, `"Business ( )"`, `"Events & Concerts ( )"`, `"Bilingual ( )"`, `"Free ( )"`, `"Paid ( )"`.
-  - Search bar placeholder: `"Search templates by name, keyword, or Ge'ez tag (e.g., , , )..."`.
-  - Template card subtitles under titles have empty parenthetical spaces (e.g. `"Habesha Gold Wedding ( )"`).
-  - Empty state title: `"No templates found ( )"`.
-  - Buttons: `"Reset All Filters ( )"`, `"Request Custom Template ( )"`, `"Start Blank Design ( )"`.
-- **`03-onboarding/04-onboarding-default-desktop.png`**:
-  - Heading has a lone blue `"?"` on a new line where Amharic subtitle text was dropped.
-  - Buttons and labels display empty parentheses: `"Skip for now ( ) ->"`, `"Custom Size ( )"`, `"Continue to Canvas ( )"`.
-- **`04-templates/06-template-detail-free-desktop.png` & `04-templates/10-template-detail-paid-desktop.png`**:
-  - Action buttons: `"Use this template ( )"`, `"Buy Template ( ) • 150 ETB"`.
-  - Recommended section: `"Similar Wedding Templates ( )"`.
+### F. Amharic Font Rendering & Missing Text
+- **Export Font Issue**: Blank parentheses `( )` appearing across Dashboard, Onboarding, and Template Gallery screens indicate that the PNG export machine lacked an Ethiopic font (e.g. Noto Sans Ethiopic / Abyssinica SIL). The designer must re-export with the Ethiopic font active and provide the raw Amharic string assets from Figma.
+- Specific instances showing blank `( )`:
+  - `02-dashboard/03-dashboard-default-desktop.png`: Heading `", Dawit! 👋"`, category pills `"Wedding ( )"`, button `"Create new design ( )"`.
+  - `04-templates/05-template-gallery-default-desktop.png`: Category pills, search placeholder, template card titles, empty state labels.
+  - `03-onboarding/04-onboarding-default-desktop.png`: Heading dropped subtitle, navigation buttons `"Skip for now ( ) ->"`, format cards.
+  - `04-templates/06-template-detail-free-desktop.png` & `10-template-detail-paid-desktop.png`: Action buttons `"Use this template ( )"`, `"Buy Template ( ) • 150 ETB"`.
 
 ### G. Anything that looks like documentation text rather than product text
 - **`06-export/12-export-default-desktop.png`**: A developer state switcher bar is embedded across the top of the modal dialog: `"STATE SWITCHER: 1. Default (Configure) 2. Rendering... 3. Done 4. Failed"`.

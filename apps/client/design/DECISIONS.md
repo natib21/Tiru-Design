@@ -1,6 +1,6 @@
-# Architecture & Product Decisions Needed Before Implementation
+# Architecture & Product Decisions
 
-This document outlines the product and architectural decisions requiring human confirmation before building the frontend application, based on the gap analysis between `apps/client/design/` and the NestJS backend (`apps/api`).
+This document records the official product and architectural decisions for the frontend application, reconciling the design specifications in `apps/client/design/` with the NestJS backend (`apps/api`).
 
 ---
 
@@ -20,8 +20,9 @@ This document outlines the product and architectural decisions requiring human c
   - **Option A (Recommended)**: Update frontend signup screens to include a **Phone Number** input field (prefixed with Ethiopian country code `+251` and validation for 9-digit local numbers: `9XXXXXXXX` or `7XXXXXXXX`).
   - **Option B**: Make `phoneNumber` optional in the backend `registerSchema` and Prisma user model.
   - **Option C**: Switch registration entirely to Phone Number + Password (dropping Email as primary identifier).
-- **Recommendation**:
-  - **Choose Option A**. In the Ethiopian market, phone numbers are essential for user verification, mobile wallet payments (Telebirr, CBE Birr), and SMS notifications. The frontend should match the backend contract by adding the Phone Number field.
+
+### Decision
+**Option A**. Frontend signup includes **Email + Phone (+251 prefix) + Password**. Phone numbers are essential for Ethiopian market user verification and payment flows.
 
 ---
 
@@ -41,8 +42,9 @@ This document outlines the product and architectural decisions requiring human c
   - **Option A (Recommended)**: Conditionally hide the Google Sign-In button if Google OAuth is disabled in frontend environment configuration (`VITE_GOOGLE_AUTH_ENABLED !== 'true'`), rendering a clean credentials-only form.
   - **Option B**: Render the Google button in a disabled state with a tooltip (`"Google Sign-In is temporarily unavailable"`).
   - **Option C**: Leave button active and allow it to fail with an error toast on click.
-- **Recommendation**:
-  - **Choose Option A**. Presenting disabled or broken authentication buttons degrades user trust and clutters the UI. When enabled in the backend with client credentials, the button can be revealed automatically.
+
+### Decision
+**Option A**. Hide behind environment flag (`VITE_GOOGLE_AUTH_ENABLED !== 'true'`). When Google OAuth is disabled, render a clean credentials-only form without dead buttons.
 
 ---
 
@@ -56,8 +58,9 @@ This document outlines the product and architectural decisions requiring human c
   - **Option A (Recommended)**: **Drop** both buttons from the mobile UI. Align mobile layout with desktop by displaying only the countdown lockout timer and the `"Reset password"` link.
   - **Option B**: Render the buttons in a disabled state labeled `"Coming Soon"`.
   - **Option C**: Build a new backend SMS/Telegram auth service.
-- **Recommendation**:
-  - **Choose Option A**. The desktop design is already clean and functional with standard rate-limit recovery. Removing dead buttons eliminates dead-ends for users.
+
+### Decision
+**Option A**. Drop SMS and Telegram login options. Align mobile account locked state with desktop, providing the countdown timer and "Reset password" recovery link.
 
 ---
 
@@ -65,37 +68,27 @@ This document outlines the product and architectural decisions requiring human c
 
 - **Context**:
   - `01-auth/01-login-default-desktop.png` includes a `"Remember this device"` checkbox above the Sign In button.
-  - `01-auth/01-login-default-mobile.png` omits this checkbox and instead includes a promotional upsell banner for "Ethiopian Creative Suite PRO".
-  - The backend supports persistent refresh tokens via HTTP cookies and token refresh endpoints.
-- **Options**:
-  - **Option A (Recommended)**: Add the `"Remember this device"` checkbox to the mobile login screen as well, ensuring platform consistency.
-  - **Option B**: Remove the checkbox from desktop and default all successful logins to persistent refresh tokens (30 days).
-  - **Option C**: Retain the platform discrepancy as-is.
-- **Recommendation**:
-  - **Choose Option A**. Giving users explicit control over session persistence is standard security practice across both mobile and desktop browsers.
+  - `01-auth/01-login-default-mobile.png` omits this checkbox.
+- **Code Investigation Finding**:
+  - Checked `apps/api/src/modules/identity/dto/login.dto.ts`: `loginSchema` only accepts `identifier` and `password`.
+  - Checked `apps/api/src/modules/identity/dto/refresh.dto.ts` and token refresh implementation: only `refreshToken` is accepted; token lifespan is fixed on the server with no optional `rememberMe` flag or conditional expiration logic.
+
+### Decision
+**Remove the checkbox from desktop**. Since no `rememberMe` option exists in the backend login DTO or refresh-token code, removing the checkbox from desktop avoids offering a non-functional control.
 
 ---
 
 ## 5. Account Locked State: Backend Status Code and Error Shape
 
 - **Context**:
-  - When a user enters incorrect credentials multiple times, the backend rate limiter triggers.
-  - In `apps/api/src/modules/identity/controllers/auth.controller.ts`, `AuthController.login` calls `rateLimitService.enforce('login:${ip}', { maxAttempts: 5, windowSeconds: 900 })`.
-- **Backend Behavior**:
-  - Status Code: **`429 Too Many Requests`** (`HttpStatus.TOO_MANY_REQUESTS`).
-  - Serialized Error Response (formatted by `HttpExceptionFilter`):
-    ```json
-    {
-      "statusCode": 429,
-      "message": "Rate limit exceeded. Try again after 2026-10-23T14:35:00.000Z",
-      "error": "TOO_MANY_REQUESTS",
-      "timestamp": "2026-10-23T14:20:00.000Z",
-      "path": "/api/auth/login"
-    }
-    ```
-- **Client Implementation Strategy**:
-  - On receiving status `429`, the client extracts the lockout expiration timestamp from the response (or defaults to a 15-minute / 900-second window) and transitions to the `Account Locked` screen (`01-login-account-locked`).
-  - The screen runs a dynamic client-side countdown timer matching `remainingSeconds` until re-enabling the form.
+  - When rate limiting triggers on login attempts, the backend returns status `429 Too Many Requests`.
+  - The client needs a deterministic method to determine the lockout countdown duration.
+
+### Decision
+Use **HTTP status 429**. Parse the lockout duration by:
+1. Reading the `Retry-After` header if present;
+2. Falling back to reading the message/timestamp payload from the error response body;
+3. Falling back to a 900s (15-minute) default window if neither is specified.
 
 ---
 
@@ -103,43 +96,19 @@ This document outlines the product and architectural decisions requiring human c
 
 - **Context**:
   - In `04-templates/10-template-detail-paid-desktop.png`, paid templates feature a `"Buy Template • 150 ETB"` button.
-  - The backend `POST /api/templates/:id/use` explicitly checks `template.priceMinor > 0` and throws:
-    ```json
-    {
-      "statusCode": 402,
-      "message": "This template requires purchase. Payment functionality coming soon.",
-      "error": "PAYMENT_REQUIRED"
-    }
-    ```
-  - Payment gateway infrastructure (Telebirr, CBE Birr) is not yet implemented.
-- **Options**:
-  - **Option A (Recommended)**: If a user clicks `"Buy Template"`, display an accessible modal dialog:
-    > **"Payment Gateway Coming Soon"**  
-    > *"Template purchases with Telebirr and CBE Birr are currently in testing. Free templates can be cloned immediately."*  
-    > With a primary CTA: `"Explore Free Templates"`.
-  - **Option B**: Disable the `"Buy Template"` button directly on the template detail page with a `"Coming Soon"` pill badge.
-  - **Option C**: Provide a sandbox test purchase button that immediately marks the template as owned in local storage.
-- **Recommendation**:
-  - **Choose Option A** with Option B's badge indicator: clearly mark paid templates as `"Coming Soon"` while gracefully catching any 402 responses with the explanatory modal.
+  - Payment gateway infrastructure (Telebirr, CBE Birr) is not yet active in the backend (`POST /api/templates/:id/use` returns 402 with `"Payment functionality coming soon"`).
+
+### Decision
+**Option A** (display explanatory modal plus `"Coming soon"` badge on paid templates), to be implemented later when the template detail page is built.
 
 ---
 
-## 7. Additional Clarifications from D0 Screen Specs
+## 7. Additional Clarifications & New Guidelines
 
-### A. Onboarding Skip Action (`/onboarding`)
-- **Question**: What happens when the user clicks `"Skip for now ( ) ->"`?
-- **Recommendation**: Call `POST /api/projects` to initialize a default blank project (Instagram Post format: `1080 x 1080 px`) titled `"Untitled Project"`, then immediately redirect to `/editor/:projectId`.
+### Decision: Deferred
+Clarifications for non-auth workflows (onboarding project generation, concurrent editor 409 conflict modals, client-side canvas rasterization export, and Ge'ez font bundling) are deferred until their respective implementation phases.
 
-### B. Concurrent Editor Conflict Resolution (`HTTP 409`)
-- **Question**: How should the editor respond if another tab or session updates the project during editing?
-- **Backend Fact**: `PUT /api/projects/:id/content` enforces optimistic concurrency control using an integer `version` field. On version mismatch, the backend returns `409 Conflict` with `currentVersion`.
-- **Recommendation**: Display a non-blocking toast or modal dialog:
-  > *"This design was updated in another window. Would you like to reload the newest version or overwrite?"*
-
-### C. Client-Side Export Fallback
-- **Question**: How should Export work given the backend BullMQ rendering queue does not expose an HTTP trigger endpoint in OpenAPI?
-- **Recommendation**: Implement direct client-side canvas rasterization via HTML5 Canvas (`toDataURL` / `toBlob`) for PNG and JPEG downloads. When the backend render queue endpoints are exposed in a future sprint, seamlessly swap the handler to server-authoritative rendering.
-
-### D. Ge'ez Font Support
-- **Question**: Which Ge'ez fonts should be bundled for preview and canvas rendering?
-- **Recommendation**: Bundle `Noto Sans Ethiopic` via `@fontsource/noto-sans-ethiopic` (already installed in client dependencies) and load `Abyssinica SIL` from Google Fonts to power the Ge'ez font selector on both Free and Paid template detail pages.
+### New Guidelines Established:
+1. **Language Switcher**: Displays one language at a time via the `EN|አማ` toggle.
+2. **"Draft saved" Banner**: Dropped from the login error screen.
+3. **Desktop Sign Up Layout**: Reuses the desktop login layout structure populated with the signup input fields (Email, Phone `+251`, Password).

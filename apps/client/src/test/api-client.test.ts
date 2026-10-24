@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
 import { client as baseClient, ApiError } from '@/shared/api';
-import type { TestClient } from './test-api-types';
+import type { TestClient } from './test-schema';
 import { env } from '@/shared/config/env';
 import { useAuthStore } from '@/features/auth';
 import { useActiveWorkspaceStore } from '@/features/workspaces';

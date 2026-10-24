@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import * as argon2 from 'argon2';
+import * as argon2 from '@node-rs/argon2';
 import { createHash } from 'crypto';
 import { PrismaService } from '../../../infrastructure/database/prisma.service';
 

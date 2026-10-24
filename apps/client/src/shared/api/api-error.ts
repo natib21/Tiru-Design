@@ -16,6 +16,7 @@ export class ApiError extends Error {
   override message: string;
   currentVersion?: unknown;
   data?: unknown;
+  headers?: Headers;
 
   constructor(
     status: number,
@@ -23,6 +24,7 @@ export class ApiError extends Error {
     message: string,
     currentVersion?: unknown,
     data?: unknown,
+    headers?: Headers,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -31,6 +33,7 @@ export class ApiError extends Error {
     this.message = message;
     this.currentVersion = currentVersion;
     this.data = data;
+    this.headers = headers;
     Object.setPrototypeOf(this, ApiError.prototype);
   }
 }

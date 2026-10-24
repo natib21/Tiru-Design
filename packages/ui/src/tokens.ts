@@ -18,7 +18,9 @@ export const colors = {
   success: '#22C55E',
   successDark: '#16A34A',
   warning: '#FACC15',
+  warningText: '#D97706',
   danger: '#DC2626',
+  dangerSurface: '#FEE2E2',
 
   // Overlays / tints
   overlay: 'rgba(205,229,255,0.2)',

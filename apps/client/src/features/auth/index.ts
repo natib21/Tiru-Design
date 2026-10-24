@@ -1,3 +1,14 @@
+import { setAuthTokenProvider } from '@/shared/api';
+import { useAuthStore } from './auth-store';
+
+// Register auth provider with shared api layer
+setAuthTokenProvider({
+  getAccessToken: () => useAuthStore.getState().accessToken,
+  getRefreshToken: () => useAuthStore.getState().refreshToken,
+  setTokens: (tokens) => useAuthStore.getState().setTokens(tokens),
+  clearSession: () => useAuthStore.getState().clearSession(),
+});
+
 export { authApi } from '@/features/auth/api/auth-api';
 export { useMe } from '@/features/auth/api/useMe';
 export {
@@ -21,3 +32,4 @@ export {
 export type { Session, SessionUser } from '@/features/auth/types/session';
 export { useAuthStore } from '@/features/auth/auth-store';
 export { authQueryKeys } from '@/features/auth/query-keys';
+

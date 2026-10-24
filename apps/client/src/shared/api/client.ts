@@ -34,7 +34,7 @@ async function handleNon2xxResponse(response: Response): Promise<never> {
     'Request failed';
   const currentVersion = body?.currentVersion;
 
-  throw new ApiError(status, code, message, currentVersion, body);
+  throw new ApiError(status, code, message, currentVersion, body, response.headers);
 }
 
 export function createApiMiddleware(): Middleware {
