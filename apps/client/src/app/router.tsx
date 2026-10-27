@@ -10,6 +10,9 @@ const ProjectsPage = lazy(() => import('@/pages/ProjectsPage'));
 const TemplatesPage = lazy(() => import('@/pages/TemplatesPage'));
 const EditorPage = lazy(() => import('@/pages/EditorPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
+const DevAuthStatesPage = import.meta.env.DEV
+  ? lazy(() => import('@/pages/DevAuthStatesPage'))
+  : null;
 
 export function AppRouter() {
   return (
@@ -35,6 +38,11 @@ export function AppRouter() {
           <Route element={<EditorLayout />}>
             <Route path="/editor/:projectId" element={<EditorPage />} />
           </Route>
+
+          {/* Dev-only auth states gallery */}
+          {import.meta.env.DEV && DevAuthStatesPage && (
+            <Route path="/dev/auth-states" element={<DevAuthStatesPage />} />
+          )}
 
           {/* 404 Catch-all */}
           <Route path="*" element={<NotFoundPage />} />

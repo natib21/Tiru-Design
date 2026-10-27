@@ -6,7 +6,8 @@ export type AuthFormState =
   | 'incorrect_password'
   | 'network_error'
   | 'account_locked'
-  | 'validation_error';
+  | 'validation_error'
+  | 'server_error';
 
 export function parseLockoutDuration(error: unknown): number {
   if (!error) return 900;
@@ -59,6 +60,7 @@ export function mapAuthErrorToState(error: unknown): {
   state: AuthFormState;
   message: string;
   lockoutSeconds?: number;
+  field?: 'email' | 'phone' | 'password';
 } {
   if (error instanceof ApiError) {
     if (error.status === 429) {
@@ -76,10 +78,28 @@ export function mapAuthErrorToState(error: unknown): {
       };
     }
 
-    if (error.status === 400 || error.status === 409 || error.status === 422) {
+    if (error.status === 409) {
+      const msg = error.message || 'Conflict';
+      const isEmail = /email/i.test(msg);
+      const isPhone = /phone/i.test(msg);
+      return {
+        state: 'validation_error',
+        message: msg,
+        field: isEmail ? 'email' : isPhone ? 'phone' : undefined,
+      };
+    }
+
+    if (error.status === 400 || error.status === 422) {
       return {
         state: 'validation_error',
         message: error.message || 'Validation failed. Please fix the errors below.',
+      };
+    }
+
+    if (error.status >= 500 || error.status === 403) {
+      return {
+        state: 'server_error',
+        message: 'Something went wrong, try again',
       };
     }
 
@@ -107,7 +127,7 @@ export function mapAuthErrorToState(error: unknown): {
   }
 
   return {
-    state: 'validation_error',
-    message: (error as Error)?.message || 'An unexpected error occurred. Please try again.',
+    state: 'server_error',
+    message: 'Something went wrong, try again',
   };
 }

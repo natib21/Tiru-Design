@@ -16,11 +16,11 @@ export const PasswordStrengthBar: React.FC<PasswordStrengthBarProps> = ({
   className = '',
 }) => {
   const getBarColor = (index: number) => {
-    if (index >= score) return 'bg-[#BEC7D3]/40';
-    if (score === 1) return 'bg-[#DC2626]';
-    if (score === 2) return 'bg-[#D97706]';
-    if (score === 3) return 'bg-[#006399]';
-    return 'bg-[#22C55E]';
+    if (index >= score) return 'bg-border/40';
+    if (score === 1) return 'bg-danger';
+    if (score === 2) return 'bg-warning-text';
+    if (score === 3) return 'bg-primary';
+    return 'bg-success';
   };
 
   return (
@@ -34,7 +34,7 @@ export const PasswordStrengthBar: React.FC<PasswordStrengthBarProps> = ({
         ))}
       </div>
       {(label || charCount !== undefined) && (
-        <div className="flex items-center justify-between text-xs text-[#3F4851]">
+        <div className="flex items-center justify-between text-xs text-text">
           <span>{label}</span>
           {charCount !== undefined && (
             <span className="tabular-nums">

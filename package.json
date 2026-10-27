@@ -6,10 +6,10 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace=@tirudesign/client",
-    "build": "npm run build --workspace=@tirudesign/client",
-    "dev:client": "npm run dev --workspace=@tirudesign/client",
-    "dev:all": "turbo run dev --parallel",
+    "dev": "node init && npm run dev --workspace=@tirudesign/client",
+    "build": "node init && npm run build --workspace=@tirudesign/client",
+    "dev:client": "node init && npm run dev --workspace=@tirudesign/client",
+    "dev:all": "node init && turbo run dev --parallel",
     "lint": "npm run lint --workspace=@tirudesign/client",
     "typecheck": "npm run typecheck --workspace=@tirudesign/client",
     "test": "npm run test --workspace=@tirudesign/client"

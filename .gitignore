@@ -2,9 +2,7 @@ node_modules
 dist
 dist-ssr
 *.local
-.env
 .env.dev
-.env.test
 .env.prod
 .env.docker
 !.env.prod.example
@@ -17,6 +15,6 @@ blob-report
 .DS_Store
 Thumbs.db
 *.log
-.vscode/*
 !.vscode/extensions.json
 .idea
+config.bat

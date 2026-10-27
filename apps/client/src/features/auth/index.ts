@@ -9,8 +9,9 @@ setAuthTokenProvider({
   clearSession: () => useAuthStore.getState().clearSession(),
 });
 
-export { authApi } from '@/features/auth/api/auth-api';
-export { useMe } from '@/features/auth/api/useMe';
+export { authApi, initializeUserSession } from '@/features/auth/api/auth-api';
+export { restoreSession, resetRestoreState } from '@/features/auth/session-restore';
+export { applyApiErrors } from '@/features/auth/utils/apply-api-errors';
 export {
   useForgotPassword,
   useLogin,
@@ -24,12 +25,15 @@ export {
 export {
   forgotPasswordSchema,
   loginSchema,
+  loginFormSchema,
   resetPasswordSchema,
   signupSchema,
+  signupFormSchema,
   verifyEmailSchema,
   verifyPhoneSchema,
 } from '@/features/auth/schemas/auth';
 export type { Session, SessionUser } from '@/features/auth/types/session';
-export { useAuthStore } from '@/features/auth/auth-store';
+export { useAuthStore, type AuthUser } from '@/features/auth/auth-store';
 export { authQueryKeys } from '@/features/auth/query-keys';
-
+export { LoginForm } from '@/features/auth/components/LoginForm';
+export { SignupForm } from '@/features/auth/components/SignupForm';
