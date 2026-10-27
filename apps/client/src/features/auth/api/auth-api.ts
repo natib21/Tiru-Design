@@ -1,4 +1,9 @@
 import { client, ApiError } from '@/shared/api';
+import { env } from '@/shared/config/env';
+import { useAuthStore, type AuthUser } from '@/features/auth/auth-store';
+import { useActiveWorkspaceStore } from '@/features/workspaces/active-workspace';
+import { resetRestoreState } from '@/features/auth/session-restore';
+import { redirectToLogin } from '@/shared/api/refresh';
 import type {
   ForgotPasswordInput,
   ResetPasswordInput,
@@ -19,17 +24,10 @@ export interface RegisterRequestBody {
 }
 
 export interface AuthSessionData {
-  user: {
-    id: string;
-    email: string;
-    phoneNumber: string;
-    emailVerified: boolean;
-    phoneVerified: boolean;
-    status: string;
-  };
+  user?: AuthUser;
   accessToken: string;
   refreshToken: string;
-  expiresAt: string;
+  expiresAt?: string;
 }
 
 type GenericPostCaller = (
@@ -42,6 +40,47 @@ type GenericPostCaller = (
 ) => Promise<{ data?: unknown; error?: unknown }>;
 
 const clientPost = client.POST as unknown as GenericPostCaller;
+
+/**
+ * Common post-login / post-signup pipeline:
+ * 1. Store tokens in auth store
+ * 2. Fetch GET /auth/me
+ * 3. Fetch GET /workspaces
+ * 4. Set active workspace to the personal one
+ */
+export async function initializeUserSession(tokens: {
+  accessToken: string;
+  refreshToken?: string | null;
+}): Promise<{ user: AuthUser; activeWorkspaceId: string | null }> {
+  useAuthStore.getState().setTokens(tokens);
+
+  // 1. Load GET /auth/me
+  const meResponse = await client.GET('/auth/me');
+  const user = (meResponse.data as unknown as AuthUser) || {
+    id: 'user-default',
+    email: '',
+  };
+  useAuthStore.getState().setUser(user);
+
+  // 2. Load GET /workspaces
+  const workspacesResponse = await client.GET('/workspaces');
+  const workspaces = (workspacesResponse.data || []) as Array<{
+    id: string;
+    type: string;
+    name: string;
+  }>;
+
+  // 3. Set active workspace to the personal one
+  const personalWorkspace =
+    workspaces.find((w) => w.type === 'PERSONAL') || workspaces[0];
+  const activeWorkspaceId = personalWorkspace?.id ?? null;
+
+  if (activeWorkspaceId) {
+    useActiveWorkspaceStore.getState().setActiveWorkspaceId(activeWorkspaceId);
+  }
+
+  return { user, activeWorkspaceId };
+}
 
 export const authApi = {
   async getSession(signal?: AbortSignal): Promise<Session | null> {
@@ -60,8 +99,13 @@ export const authApi = {
   },
 
   async login(body: LoginRequestBody): Promise<AuthSessionData> {
+    const cleanIdentifier = body.identifier.trim().toLowerCase();
+
     const response = await clientPost('/auth/login', {
-      body,
+      body: {
+        identifier: cleanIdentifier,
+        password: body.password,
+      },
       params: {
         header: {
           'user-agent': typeof navigator !== 'undefined' ? navigator.userAgent : 'TiruDesign',
@@ -73,12 +117,25 @@ export const authApi = {
       throw new ApiError(400, 'BAD_REQUEST', 'Login failed');
     }
 
-    return response.data as AuthSessionData;
+    const data = response.data as AuthSessionData;
+    await initializeUserSession({
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
+    });
+
+    return data;
   },
 
   async signup(body: RegisterRequestBody): Promise<AuthSessionData> {
+    const cleanEmail = body.email.trim().toLowerCase();
+    const cleanPhone = body.phoneNumber.trim();
+
     const response = await clientPost('/auth/register', {
-      body,
+      body: {
+        email: cleanEmail,
+        phoneNumber: cleanPhone,
+        password: body.password,
+      },
       params: {
         header: {
           'user-agent': typeof navigator !== 'undefined' ? navigator.userAgent : 'TiruDesign',
@@ -90,16 +147,44 @@ export const authApi = {
       throw new ApiError(400, 'BAD_REQUEST', 'Registration failed');
     }
 
-    return response.data as AuthSessionData;
+    const data = response.data as {
+      user?: AuthUser;
+      accessToken?: string;
+      refreshToken?: string;
+    };
+
+    // If sign-up returns no tokens, log in with the same credentials right after!
+    if (!data.accessToken || !data.refreshToken) {
+      return authApi.login({
+        identifier: cleanEmail,
+        password: body.password,
+      });
+    }
+
+    await initializeUserSession({
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
+    });
+
+    return data as AuthSessionData;
   },
 
   async logout(): Promise<void> {
-    await clientPost('/auth/logout', {});
+    try {
+      await clientPost('/auth/logout', {});
+    } catch {
+      // Ignore failure: clear state unconditionally
+    } finally {
+      useAuthStore.getState().clearSession();
+      useActiveWorkspaceStore.getState().clearActiveWorkspace();
+      resetRestoreState();
+      redirectToLogin();
+    }
   },
 
-  async getMe() {
+  async getMe(): Promise<AuthUser | null> {
     const response = await client.GET('/auth/me');
-    return response.data;
+    return (response.data as unknown as AuthUser) || null;
   },
 
   async verifyPhone(input: VerifyPhoneInput): Promise<SessionResponse> {
@@ -122,7 +207,7 @@ export const authApi = {
 
   googleLogin(): void {
     if (typeof window !== 'undefined') {
-      const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace(/\/api$/, '');
+      const baseUrl = env.VITE_API_URL.replace(/\/api$/, '');
       window.location.href = `${baseUrl}/api/auth/google`;
     }
   },

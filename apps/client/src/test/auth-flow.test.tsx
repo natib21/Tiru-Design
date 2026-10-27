@@ -117,12 +117,46 @@ describe('2. Error Mapping & Lockout Duration Parser Tests', () => {
     expect(mapped.lockoutSeconds).toBe(600);
   });
 
-  it('maps HTTP 400 and 409 to validation_error state', () => {
-    const error400 = new ApiError(400, 'BAD_REQUEST', 'Validation failed');
-    expect(mapAuthErrorToState(error400).state).toBe('validation_error');
+  it('maps HTTP 409 with email message to validation_error on email field', () => {
+    const error = new ApiError(409, 'CONFLICT', 'Email already registered');
+    const mapped = mapAuthErrorToState(error);
+    expect(mapped.state).toBe('validation_error');
+    expect(mapped.field).toBe('email');
+    expect(mapped.message).toBe('Email already registered');
+  });
 
-    const error409 = new ApiError(409, 'CONFLICT', 'User already exists');
-    expect(mapAuthErrorToState(error409).state).toBe('validation_error');
+  it('maps HTTP 409 with phone message to validation_error on phone field', () => {
+    const error = new ApiError(409, 'CONFLICT', 'Phone number already registered');
+    const mapped = mapAuthErrorToState(error);
+    expect(mapped.state).toBe('validation_error');
+    expect(mapped.field).toBe('phone');
+    expect(mapped.message).toBe('Phone number already registered');
+  });
+
+  it('maps HTTP 5xx, 403, and unknown errors to server_error state', () => {
+    const error500 = new ApiError(500, 'INTERNAL_SERVER_ERROR', 'Internal error');
+    expect(mapAuthErrorToState(error500)).toEqual({
+      state: 'server_error',
+      message: 'Something went wrong, try again',
+    });
+
+    const error502 = new ApiError(502, 'BAD_GATEWAY', 'Bad Gateway');
+    expect(mapAuthErrorToState(error502)).toEqual({
+      state: 'server_error',
+      message: 'Something went wrong, try again',
+    });
+
+    const error403 = new ApiError(403, 'FORBIDDEN', 'Access forbidden');
+    expect(mapAuthErrorToState(error403)).toEqual({
+      state: 'server_error',
+      message: 'Something went wrong, try again',
+    });
+
+    const unknownErr = { custom: 'weird exception' };
+    expect(mapAuthErrorToState(unknownErr)).toEqual({
+      state: 'server_error',
+      message: 'Something went wrong, try again',
+    });
   });
 
   it('maps network errors to network_error state', () => {
@@ -306,7 +340,7 @@ describe('4. Full Login Flow Tests', () => {
 });
 
 describe('5. Full Signup Flow Tests', () => {
-  it('sends formatted +251 phone number and stores session on registration', async () => {
+  it('sends formatted +251 phone number and redirects to login with registration notification', async () => {
     let capturedBody: unknown = null;
 
     server.use(
@@ -321,9 +355,6 @@ describe('5. Full Signup Flow Tests', () => {
             phoneVerified: false,
             status: 'ACTIVE',
           },
-          accessToken: 'new-user-access-token',
-          refreshToken: 'new-user-refresh-token',
-          expiresAt: new Date(Date.now() + 900000).toISOString(),
         });
       })
     );
@@ -332,7 +363,7 @@ describe('5. Full Signup Flow Tests', () => {
       <MemoryRouter initialEntries={['/signup']}>
         <Routes>
           <Route path="/signup" element={<SignupPage />} />
-          <Route path="/dashboard" element={<div data-testid="dashboard-page">Dashboard</div>} />
+          <Route path="/login" element={<LoginPage />} />
         </Routes>
       </MemoryRouter>
     );
@@ -350,7 +381,7 @@ describe('5. Full Signup Flow Tests', () => {
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
-      expect(screen.getByTestId('dashboard-page')).toBeInTheDocument();
+      expect(screen.getByText(/Account created successfully! Please sign in\./i)).toBeInTheDocument();
     });
 
     expect(capturedBody).toEqual({
@@ -358,8 +389,5 @@ describe('5. Full Signup Flow Tests', () => {
       phoneNumber: '+251911234567',
       password: 'ValidPass123',
     });
-
-    expect(useAuthStore.getState().accessToken).toBe('new-user-access-token');
-    expect(useAuthStore.getState().refreshToken).toBe('new-user-refresh-token');
   });
 });

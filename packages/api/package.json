@@ -3,9 +3,11 @@
   "version": "0.0.1",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "private": false,
   "scripts": {
-    "build": "tsc -b"
+    "build": "node init && tsc -b"
   }
 }

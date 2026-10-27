@@ -13,7 +13,7 @@ export const LanguageToggle: React.FC<{ className?: string }> = ({ className = '
     <div
       role="group"
       aria-label="Language selection"
-      className={`inline-flex items-center rounded-lg border border-[#BEC7D3] bg-[#F7F9FB] p-0.5 text-xs font-medium text-[#3F4851] ${className}`}
+      className={`inline-flex items-center rounded-lg border border-border bg-background p-0.5 text-xs font-medium text-text ${className}`}
     >
       <button
         type="button"
@@ -21,8 +21,8 @@ export const LanguageToggle: React.FC<{ className?: string }> = ({ className = '
         onClick={() => handleSelect('en')}
         className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md px-2.5 py-1 transition-all ${
           currentLang === 'en'
-            ? 'bg-white font-semibold text-[#006399] shadow-sm'
-            : 'text-[#3F4851] hover:text-[#0f172a]'
+            ? 'bg-white font-semibold text-primary shadow-sm'
+            : 'text-text hover:text-foreground'
         }`}
       >
         EN
@@ -33,8 +33,8 @@ export const LanguageToggle: React.FC<{ className?: string }> = ({ className = '
         onClick={() => handleSelect('am')}
         className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md px-2.5 py-1 transition-all ${
           currentLang === 'am'
-            ? 'bg-white font-semibold text-[#006399] shadow-sm'
-            : 'text-[#3F4851] hover:text-[#0f172a]'
+            ? 'bg-white font-semibold text-primary shadow-sm'
+            : 'text-text hover:text-foreground'
         }`}
       >
         አማ
